@@ -24,7 +24,7 @@ modelo.fit(X_train, y_train)
 # Fazendo com que o modelo tente adivinhar a natureza dos 20% de dados separados
 previsoes = modelo.predict(X_test)
 
-# Conferindo os resultados comparando as previsões com o gabarito (y_test)
+# Conferindo os resultados comparando as previsões com o dataset original
 acuracia = accuracy_score(y_test, previsoes)
 print(f"Acurácia do modelo: {acuracia * 100:.2f}%\n")
 
