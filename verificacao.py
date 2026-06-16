@@ -42,5 +42,5 @@ def analisar_dados_faltantes(caminho_arquivo):
 
 # --- Execução do Script ---
 # Substitua 'seu_arquivo.csv' pelo nome ou caminho do seu arquivo
-nome_do_arquivo = 'Android_Malware_Benign.csv' 
+nome_do_arquivo = 'data.csv' 
 analisar_dados_faltantes(nome_do_arquivo)
