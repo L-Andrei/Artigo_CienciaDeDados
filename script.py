@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 # Carregue o seu dataset correto substituindo o nome do arquivo abaixo
-df = pd.read_csv("data.csv")
+df = pd.read_csv("drebin-215.csv")
 
 # O iloc[:, :-1] seleciona todas as linhas e todas as colunas, EXCETO a última (features)
 X = df.iloc[:, :-1]
