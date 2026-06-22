@@ -1,64 +1,65 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import numpy as np
+from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-# Carregue o seu dataset correto
 df = pd.read_csv("data_limpo.csv")
 
-# O iloc[:, :-1] seleciona todas as linhas e todas as colunas, EXCETO a última (features)
 X = df.iloc[:, :-1]
-
-# O iloc[:, -1] seleciona todas as linhas, mas APENAS a última coluna (alvo)
 y = df.iloc[:, -1]
 
-# Ajustado para usar a string exata que o seu dataset possui para malwares
 rotulo_malware = 'Malware' 
 
-# Lista de proporções para a base de teste (30%, 25%, 20%, 15%, 10%)
 tamanhos_teste = [0.30, 0.25, 0.20, 0.15, 0.10]
-
-# Lista vazia para ir guardando os resultados de cada treinamento
 resultados_finais = []
 
 for test_size in tamanhos_teste:
-    # Calculando as porcentagens para exibição
-    treino_pct = int((1 - test_size) * 100)
-    teste_pct = int(test_size * 100)
+    treino_pct = int(round((1 - test_size) * 100))
+    teste_pct = int(round(test_size * 100))
     distribuicao = f"{treino_pct}-{teste_pct}"
     
-    print(f"Treinando modelo com distribuição {distribuicao}...")
+    print(f"Executando validação cruzada para distribuição {distribuicao}...")
     
-    # Dividindo os dados conforme a proporção atual do loop
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+    # Configuração da Validação Cruzada Estratificada (5 iterações por distribuição)
+    sss = StratifiedShuffleSplit(n_splits=5, test_size=test_size, random_state=42)
     
-    # Inicializando e treinando o modelo Random Forest
-    modelo = RandomForestClassifier(n_estimators=500, random_state=42, n_jobs=-1)
-    modelo.fit(X_train, y_train)
+    # O classificador mantém os mesmos hiperparâmetros já definidos metodologicamente
+    modelo = RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1)
     
-    # Gerando as previsões
-    previsoes = modelo.predict(X_test)
+    # Listas temporárias para armazenar os resultados das 5 rodadas
+    acuracias = []
+    precisoes = []
+    recalls = []
+    f1s = []
     
-    # Calculando as métricas solicitadas
-    acuracia = accuracy_score(y_test, previsoes)
-    precisao_malware = precision_score(y_test, previsoes, pos_label=rotulo_malware)
-    recall_malware = recall_score(y_test, previsoes, pos_label=rotulo_malware)
-    f1_malware = f1_score(y_test, previsoes, pos_label=rotulo_malware)
+    for train_index, test_index in sss.split(X, y):
+        # Separação dos dados para a rodada atual
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        
+        # Treinamento e previsão
+        modelo.fit(X_train, y_train)
+        previsoes = modelo.predict(X_test)
+        
+        # Cálculo e armazenamento das métricas desta rodada
+        acuracias.append(accuracy_score(y_test, previsoes))
+        precisoes.append(precision_score(y_test, previsoes, pos_label=rotulo_malware))
+        recalls.append(recall_score(y_test, previsoes, pos_label=rotulo_malware))
+        f1s.append(f1_score(y_test, previsoes, pos_label=rotulo_malware))
     
-    # Salvando os resultados deste ciclo no dicionário
+    # Consolidação dos resultados calculando a média das 5 rodadas
     resultados_finais.append({
         'Distribuicao': distribuicao,
-        'Acuracia_Geral': round(acuracia, 4),
-        'Precision_Malware': round(precisao_malware, 4),
-        'Recall_Malware': round(recall_malware, 4),
-        'F1_Score_Malware': round(f1_malware, 4)
+        'Acuracia_Geral': round(np.mean(acuracias), 4),
+        'Precision_Malware': round(np.mean(precisoes), 4),
+        'Recall_Malware': round(np.mean(recalls), 4),
+        'F1_Score_Malware': round(np.mean(f1s), 4)
     })
 
-# Convertendo a lista de resultados em um DataFrame para melhor visualização
 df_resultados = pd.DataFrame(resultados_finais)
 
-print("\n--- Resumo de Todos os Treinamentos ---")
+print("\n--- Resumo de Todos os Treinamentos (Validação Cruzada) ---")
 print(df_resultados.to_string(index=False))
 
-# Descomente a linha abaixo se quiser salvar a tabela de resultados em um arquivo CSV na sua máquina
-# df_resultados.to_csv("resultados_comparativos_distribuicoes.csv", index=False)
+# df_resultados.to_csv("resultados_comparativos_cv.csv", index=False)

@@ -8,6 +8,17 @@ def limpar_dataset(caminho_arquivo, caminho_saida):
         print(f"--- Processando o Dataset: {caminho_arquivo} ---")
         print(f"Tamanho original: {df.shape[0]} linhas e {df.shape[1]} colunas\n")
 
+        # --- NOVA PARTE: Análise da Distribuição de Classes Original ---
+        coluna_alvo = df.columns[-1] # Pega o nome da última coluna
+        contagem = df[coluna_alvo].value_counts()
+        total = len(df)
+
+        print("--- Distribuição Original de Classes ---")
+        for classe, qtd in contagem.items():
+            porcentagem = (qtd / total) * 100
+            print(f"Categoria '{classe}': {qtd} amostras ({porcentagem:.2f}%)")
+        print("\n")
+
         # Verifica e separa as colunas preenchidas somente com 0 ou 1
         colunas_so_zeros = [col for col in df.columns if (df[col] == 0).all()]
         colunas_so_uns = [col for col in df.columns if (df[col] == 1).all()]
@@ -40,8 +51,18 @@ def limpar_dataset(caminho_arquivo, caminho_saida):
         df_limpo.to_csv(caminho_saida, index=False)
         
         print(f"\n--- Limpeza Concluída ---")
-        print(f"Tamanho do novo dataset: {df_limpo.shape[0]} linhas e {df_limpo.shape[1]} colunas")
-        print(f"Dataset salvo com sucesso em: '{caminho_saida}'\n")
+        print(f"Tamanho do novo dataset: {df_limpo.shape[0]} linhas e {df_limpo.shape[1]} colunas\n")
+        
+        # --- NOVA PARTE: Análise da Distribuição de Classes Após Limpeza ---
+        contagem_limpa = df_limpo[coluna_alvo].value_counts()
+        total_limpo = len(df_limpo)
+        
+        print("--- Distribuição Final de Classes ---")
+        for classe, qtd in contagem_limpa.items():
+            porcentagem = (qtd / total_limpo) * 100
+            print(f"Categoria '{classe}': {qtd} amostras ({porcentagem:.2f}%)")
+            
+        print(f"\nDataset salvo com sucesso em: '{caminho_saida}'\n")
 
     except FileNotFoundError:
         print(f"Erro: O arquivo '{caminho_arquivo}' não foi encontrado. Verifique o caminho.")

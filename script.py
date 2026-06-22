@@ -1,35 +1,48 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import f1_score
 
-# Carregue o seu dataset correto substituindo o nome do arquivo abaixo
-df = pd.read_csv("drebin-215.csv")
+# Carregue o seu dataset (usando o arquivo limpo como base)
+df = pd.read_csv("data_limpo.csv")
 
-# O iloc[:, :-1] seleciona todas as linhas e todas as colunas, EXCETO a última (features)
 X = df.iloc[:, :-1]
-
-# O iloc[:, -1] seleciona todas as linhas, mas APENAS a última coluna (alvo)
 y = df.iloc[:, -1]
 
-# Dividindo os dados com 80% para treino e 20% para teste (test_size=0.20)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+# Divisão fixa para que a variação seja apenas pelo número de árvores
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)
 
-# Inicializando o modelo Random Forest com processamento paralelo (n_jobs=-1)
-modelo = RandomForestClassifier(n_estimators=500, random_state=42, n_jobs=-1)
+# Lista de valores de n_estimators para testar
+# Você pode ajustar esses valores conforme necessário
+n_estimators_list = [ 100, 200, 300, 400, 500]
+f1_results = []
 
-# Treinando o modelo apenas com a parcela de 80% dos dados
-modelo.fit(X_train, y_train)
+print("Iniciando testes de n_estimators...")
 
-# Fazendo com que o modelo tente adivinhar a natureza dos 20% de dados separados
-previsoes = modelo.predict(X_test)
+for n in n_estimators_list:
+    print(f"Treinando com {n} árvores...")
+    
+    # Inicializa e treina o modelo
+    modelo = RandomForestClassifier(n_estimators=n, random_state=42, n_jobs=-1)
+    modelo.fit(X_train, y_train)
+    
+    # Previsão e cálculo do F1-Score
+    previsoes = modelo.predict(X_test)
+    score = f1_score(y_test, previsoes, pos_label='Malware')
+    
+    f1_results.append(score)
 
-# Conferindo os resultados comparando as previsões com o dataset original
-acuracia = accuracy_score(y_test, previsoes)
-print(f"Acurácia do modelo: {acuracia * 100:.2f}%\n")
+# Plotagem do gráfico
+plt.figure(figsize=(10, 6))
+plt.plot(n_estimators_list, f1_results, marker='o', linestyle='-', color='b')
+plt.title('Influência do n_estimators no F1-Score')
+plt.xlabel('Número de Estimadores (Árvores)')
+plt.ylabel('F1-Score (Malware)')
+plt.grid(True)
 
-print("Relatório de Classificação:")
-print(classification_report(y_test, previsoes))
+# Adiciona os valores no gráfico para facilitar a leitura
+for i, txt in enumerate(f1_results):
+    plt.annotate(f"{txt:.4f}", (n_estimators_list[i], f1_results[i]), textcoords="offset points", xytext=(0,10), ha='center')
 
-print("Matriz de Confusão:")
-print(confusion_matrix(y_test, previsoes))
+plt.show()
