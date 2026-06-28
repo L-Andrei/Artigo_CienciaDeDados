@@ -1,48 +1,57 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score
+from sklearn.metrics import (f1_score, accuracy_score, precision_score, 
+                             recall_score, confusion_matrix)
 
-# Carregue o seu dataset (usando o arquivo limpo como base)
 df = pd.read_csv("data_limpo.csv")
 
 X = df.iloc[:, :-1]
 y = df.iloc[:, -1]
 
-# Divisão fixa para que a variação seja apenas pelo número de árvores
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)
+test_sizes = [0.30, 0.20]
+n_estimators_list = list(range(100, 550, 50))
 
-# Lista de valores de n_estimators para testar
-# Você pode ajustar esses valores conforme necessário
-n_estimators_list = [ 100, 200, 300, 400, 500]
-f1_results = []
+resultados = []
 
-print("Iniciando testes de n_estimators...")
+print("A iniciar os testes do Random Forest...")
 
-for n in n_estimators_list:
-    print(f"Treinando com {n} árvores...")
+for test_size in test_sizes:
+    proporcao = "70-30" if test_size == 0.30 else "80-20"
+    print(f"\n--- A avaliar a divisão {proporcao} ---")
     
-    # Inicializa e treina o modelo
-    modelo = RandomForestClassifier(n_estimators=n, random_state=42, n_jobs=-1)
-    modelo.fit(X_train, y_train)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
     
-    # Previsão e cálculo do F1-Score
-    previsoes = modelo.predict(X_test)
-    score = f1_score(y_test, previsoes, pos_label='Malware')
-    
-    f1_results.append(score)
+    for n in n_estimators_list:
+        modelo = RandomForestClassifier(n_estimators=n, random_state=42, n_jobs=-1)
+        modelo.fit(X_train, y_train)
+        
+        previsoes = modelo.predict(X_test)
+        
+        f1 = round(f1_score(y_test, previsoes, pos_label='Malware'), 4)
+        acc = round(accuracy_score(y_test, previsoes), 4)
+        prec = round(precision_score(y_test, previsoes, pos_label='Malware'), 4)
+        rec = round(recall_score(y_test, previsoes, pos_label='Malware'), 4)
+        
+        cm = confusion_matrix(y_test, previsoes)
+        tn, fp, fn, tp = cm.ravel()
+        
+        resultados.append({
+            'Divisao': proporcao,
+            'N_Arvores': n,
+            'Acuracia': acc,
+            'Precisao': prec,
+            'Recall': rec,
+            'F1_Score': f1,
+            'Falsos_Positivos': fp,
+            'Falsos_Negativos': fn
+        })
+        
+        print(f"Treino com {n} árvores concluído.")
 
-# Plotagem do gráfico
-plt.figure(figsize=(10, 6))
-plt.plot(n_estimators_list, f1_results, marker='o', linestyle='-', color='b')
-plt.title('Influência do n_estimators no F1-Score')
-plt.xlabel('Número de Estimadores (Árvores)')
-plt.ylabel('F1-Score (Malware)')
-plt.grid(True)
+df_resultados = pd.DataFrame(resultados)
+print("\nResultados Finais:")
+print(df_resultados.to_string(index=False))
 
-# Adiciona os valores no gráfico para facilitar a leitura
-for i, txt in enumerate(f1_results):
-    plt.annotate(f"{txt:.4f}", (n_estimators_list[i], f1_results[i]), textcoords="offset points", xytext=(0,10), ha='center')
-
-plt.show()
+df_resultados.to_csv("resultados_experimento.csv", index=False)
+print("\nResultados guardados no ficheiro 'resultados_experimento.csv'.")
